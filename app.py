@@ -1,5 +1,12 @@
 import pandas as pd
 from flask import Flask, render_template, request
+<<<<<<< HEAD
+=======
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import json
+import os
+>>>>>>> fe852367cebc4751871bce4b79f08d017a71d12d
 
 app = Flask(__name__)
 
