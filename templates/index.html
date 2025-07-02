@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>門市資料查詢</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background-color: #f7f7f7; }
+        h1 { text-align: center; color: #333; }
+        form, .buttons { text-align: center; margin-bottom: 20px; }
+        input[type="text"], select {
+            padding: 10px;
+            width: 160px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin: 5px;
+        }
+		.custom-row-4 {
+			border-top: 3px solid black;  /* 粗黑上框線 */
+			color: black;                 /* 文字黑色 */
+			font-weight: bold;            /* 如果想要字體加粗可以加 */
+		}
+		.custom-row-4 td {
+			color: black;                 /* 確保所有欄位文字都黑色 */
+		}		
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .table-container {
+            overflow-y: auto;
+            max-height: 600px;
+            border: 1px solid #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        tr:hover { background-color: #f1f1f1; }
+        .highlight-row td {
+            color: red;
+            font-weight: bold;
+            border-top: 2px solid black;
+        }
+        .status-pm {
+            background-color: red;
+            color: white;
+        }
+        .status-replaced {
+            color: green;
+        }
+        .status-not-replaced {
+            color: red;
+        }
+        .status-repair { 
+            color: black;
+            font-weight: bold;
+            background-color: #d8ecff;
+        }
+        #backToTop {
+            position: fixed;
+            bottom: 230px;
+            right: 30px;
+            z-index: 1000;
+            display: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        #backToTop:hover {
+            background-color: #0056b3;
+        }
+        .workcheck-star {
+            color: red;
+            font-weight: bold;
+        }
+        .workcheck-repair {
+            color: black;
+            font-weight: bold;
+            background-color: #d8ecff;
+        }
+        .workcheck-hub {
+            color: black;
+            font-weight: bold;
+            background-color: #d8ecff;
+        }
+        .workcheck-edc {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>
+        {% if personal_page %} PMQ3 個人查詢
+        {% elif report_page %} 報修查詢
+        {% else %} PMQ3 門市資料查詢
+        {% endif %}
+    </h1>
+
+    <form method="get">
+        {% if not report_page %}
+            <input type="text" name="keyword" placeholder="請輸入關鍵字查詢" value="{{ keyword }}">
+        {% endif %}
+        {% if report_page %}
+            <input type="text" name="store_id" placeholder="門市編號" value="{{ store_id }}">
+            <select name="repair_item">
+                <option value="">-- 選擇報修類別 --</option>
+                {% for item in [
+                    'HL-TM主機', 'HL-熱感發票機', 'HL-立式掃描器', 'HL-多卡機QP3000E', 'HL-CCD掃描器(TM)',
+                    'HL-CCD掃描器(SC)', 'HL-SC主機', 'HL-SC螢幕', 'HL-HUB', 'HL-雷射印表機', 'HL-4G分享器',
+                    'HL-PepLink負載平衡器', 'HL-LIFE-ET主機', 'HL-LIFE-ET熱感機T70II', 'HL-LIFE-ET印票機L90',
+                    'LIFE-ET 標籤印表機', 'HL-LIFE-ET QRcode掃描器', 'HL-LIFE-ET IC晶片讀卡機', 'HL-LIFE-ET 標籤印表機'
+                ] %}
+                    <option value="{{ item }}" {% if repair_item == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
+        <button type="submit">搜尋</button>
+    </form>
+
+    {% if no_data_found %}
+        <p style="color: red; text-align: center;">無此資料</p>
+    {% endif %}
+
+    <div class="buttons">
+        <a href="/吳宗鴻"><button>吳宗鴻</button></a>
+        <a href="/湯家瑋"><button>湯家瑋</button></a>
+        <a href="/狄澤洋"><button>狄澤洋</button></a>
+        <a href="/report"><button>報修查詢</button></a>
+        {% if personal_page or report_page %}
+            <a href="/"><button style="background-color: #6c757d;">回首頁</button></a>
+        {% endif %}
+    </div>
+
+    {% if not personal_page and not report_page %}
+        <h2>部門數量</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    {% if department_table %}
+                    <tr>{% for key in department_table[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in department_table %}
+                    <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2>季保養進度</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    {% if seasons_table %}
+                    <tr>{% for key in seasons_table[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in seasons_table %}
+                    <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2>
+            <button onclick="toggleSection('project1-content', event)" style="margin-right: 8px;">▶</button>
+            專案項目
+        </h2>
+        <div id="project1-content" style="display: none;" class="table-container">
+            <table>
+                <thead>
+                    {% if project1_table %}
+                    <tr>{% for key in project1_table[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in project1_table %}
+                    <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2>門市資料</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    {% if tables %}
+                    <tr>{% for key in tables[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in tables %}
+                    <tr {% if row['PMQ3檢核'] == 'PM' %} class="highlight-row" {% endif %}>
+                        {% for key, value in row.items() %}
+                            {% if key == 'PMQ3檢核' and value == 'PM' %}
+                                <td class="status-pm">{{ value }}</td>
+                            {% elif key == '專案檢核' and value == '已更換' %}
+                                <td class="status-replaced">{{ value }}</td>
+                            {% elif key == '專案檢核' and value == '未更換' %}
+                                <td class="status-not-replaced">{{ value }}</td>
+                            {% elif key == '完工檢核' and value == '報修' %}
+                                <td class="status-repair">{{ value }}</td>
+                            {% else %}
+                                <td>{{ value }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if personal_page %}
+        {% if show_top %}
+            <h2 id="season-title">季保養進度</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>{% for key in tables_top[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tables_top %}
+                        <tr {% if loop.index == 4 %}class="highlight-row"{% endif %}>
+                            {% for value in row.values() %}<td>{{ value }}</td>{% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if show_project %}
+            <h2>專案進度</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        {% if tables_project %}
+                        <tr>{% for key in tables_project[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for row in tables_project %}
+                        <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <h2>門市資料</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    {% if tables_bottom %}
+                    <tr>{% for key in tables_bottom[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in tables_bottom %}
+                    <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if report_page %}
+        <h2>報修查詢</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    {% if tables %}
+                    <tr>{% for key in tables[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+                    {% endif %}
+                </thead>
+                <tbody>
+                    {% for row in tables %}
+                    <tr>
+                        {% for value in row.values() %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <button id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">回頂部</button>
+
+<script>
+    function toggleSection(id, event) {
+        event.preventDefault();
+        const content = document.getElementById(id);
+        if (content.style.display === "none") {
+            content.style.display = "block";
+            event.target.textContent = "▼";
+        } else {
+            content.style.display = "none";
+            event.target.textContent = "▶";
+        }
+    }
+
+    window.addEventListener('scroll', function() {
+        const btn = document.getElementById('backToTop');
+        if (window.scrollY > 100) {
+            btn.style.display = 'block';
+        } else {
+            btn.style.display = 'none';
+        }
+    });
+</script>
+<script>
+    const path = window.location.pathname;
+    const encodedName = path.slice(1);
+    const name = decodeURIComponent(encodedName);
+    if (name) {
+        const titleEl = document.getElementById('season-title');
+        titleEl.textContent = name + ' - 季保養進度';
+    }
+</script>
+</body>
+</html>
