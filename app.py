@@ -12,7 +12,7 @@ GITHUB_XLSX_URL = 'https://github.com/Diyn19/Preventive_Maintenance/blob/master/
 def load_excel_from_github(url):
     response = requests.get(url)
     if response.status_code == 200:
-        return pd.ExcelFile(BytesIO(response.content))
+        return pd.ExcelFile(BytesIO(response.content), engine='openpyxl')
     else:
         raise Exception("下載 Excel 失敗: " + url)
 
