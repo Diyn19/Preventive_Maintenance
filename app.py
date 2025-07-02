@@ -1,43 +1,8 @@
 import pandas as pd
 from flask import Flask, render_template, request
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import json
 
 app = Flask(__name__)
 
-# Google Sheets 認證與讀取函式
-def get_sheet(sheet_name, header=0, skiprows=None, usecols=None, nrows=None):
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-
-    # 從環境變數讀金鑰JSON字串
-    key_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-    if not key_json:
-        raise Exception("環境變數 GOOGLE_CREDENTIALS_JSON 未設定或為空")
-
-    creds_dict = json.loads(key_json)
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-
-    client = gspread.authorize(creds)
-
-    # 你原本的這行有誤，worksheet() 裡面要傳字串 sheet_name 而不是 data
-    sheet = client.open_by_key('13BpLAGfdFyiXno69hFTkhHxkqyIE_8PiFuek8M4UnzU').worksheet(sheet_name)
-
-    data = sheet.get_all_values()
-    df = pd.DataFrame(data)
-
-    if header is not None:
-        df.columns = df.iloc[header]
-        df = df.drop(index=list(range(0, header + 1)))
-    if skiprows:
-        df = df.iloc[skiprows:]
-    if usecols:
-        df = df.iloc[:, pd.Index(usecols)]
-    if nrows:
-        df = df.head(nrows)
-    df = df.fillna('')
-    return df.reset_index(drop=True)
-    
 # 清理資料
 def clean_df(df):
     df.columns = df.columns.astype(str).str.replace('\n', '', regex=False)
@@ -46,16 +11,16 @@ def clean_df(df):
 
 @app.route('/')
 def index():
-    df_department = get_sheet('首頁', header=4, nrows=1)
+    df_department = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:F", skiprows=4, nrows=1)
     df_department = clean_df(df_department)
 
-    df_seasons = get_sheet('首頁', header=8, nrows=2)
+    df_seasons = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:D", skiprows=8, nrows=2)
     df_seasons = clean_df(df_seasons)
 
-    df_project1 = get_sheet('首頁', header=12, nrows=3)
+    df_project1 = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:E", skiprows=12, nrows=3)
     df_project1 = clean_df(df_project1)
 
-    df = get_sheet('首頁', header=13, nrows=250)
+    df = pd.read_excel('data.xlsx', sheet_name=0, header=13, nrows=250, usecols="A:O")
     df = clean_df(df)
     df = df[['門市編號', '門市名稱', 'PMQ_檢核', '專案檢核', 'HUB', '完工檢核']]
 
@@ -94,15 +59,18 @@ def personal(name):
     if not sheet_name:
         return f"找不到{name}的分頁", 404
 
-    df_top = get_sheet(sheet_name, header=0, nrows=4)
+    df_top = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="A:G", nrows=4)
     df_top = clean_df(df_top)
-    df_top = df_top.applymap(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
+    for column in df_top.columns:
+        df_top[column] = df_top[column].apply(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
 
-    df_project = get_sheet(sheet_name, header=0, usecols=range(7, 12), nrows=3)
+    df_project = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="H:L", nrows=3)
     df_project = clean_df(df_project)
-    df_project = df_project.applymap(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
+    for column in df_project.columns:
+        df_project[column] = df_project[column].apply(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
 
-    df_bottom = get_sheet(sheet_name, header=5)
+    # 永遠執行這段
+    df_bottom = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="A:J", skiprows=5)
     df_bottom = clean_df(df_bottom)
 
     keyword = request.args.get('keyword', '').strip()
@@ -137,7 +105,7 @@ def report():
     tables = []
 
     if keyword or store_id or repair_item:
-        df = get_sheet('IM')
+        df = pd.read_excel('data.xlsx', sheet_name='IM')
         df = clean_df(df)
         df = df[['案件類別', '門店編號', '門店名稱', '報修時間', '報修類別', '報修項目', '報修說明', '設備號碼', '服務人員', '工作內容']]
 
