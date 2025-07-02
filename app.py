@@ -1,14 +1,20 @@
 import pandas as pd
+import requests
+from io import BytesIO
 from flask import Flask, render_template, request
-<<<<<<< HEAD
-=======
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import json
-import os
->>>>>>> fe852367cebc4751871bce4b79f08d017a71d12d
 
 app = Flask(__name__)
+
+# GitHub 上的 raw Excel 路徑（請自行替換成你的）
+GITHUB_XLSX_URL = 'https://github.com/Diyn19/Preventive_Maintenance/blob/master/data.xlsx'
+
+# 即時從 GitHub 載入 Excel 檔案
+def load_excel_from_github(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return pd.ExcelFile(BytesIO(response.content))
+    else:
+        raise Exception("下載 Excel 失敗: " + url)
 
 # 清理資料
 def clean_df(df):
@@ -18,16 +24,18 @@ def clean_df(df):
 
 @app.route('/')
 def index():
-    df_department = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:F", skiprows=4, nrows=1)
+    xls = load_excel_from_github(GITHUB_XLSX_URL)
+
+    df_department = pd.read_excel(xls, sheet_name='首頁', usecols="A:F", skiprows=4, nrows=1)
     df_department = clean_df(df_department)
 
-    df_seasons = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:D", skiprows=8, nrows=2)
+    df_seasons = pd.read_excel(xls, sheet_name='首頁', usecols="A:D", skiprows=8, nrows=2)
     df_seasons = clean_df(df_seasons)
 
-    df_project1 = pd.read_excel('data.xlsx', sheet_name='首頁', usecols="A:E", skiprows=12, nrows=3)
+    df_project1 = pd.read_excel(xls, sheet_name='首頁', usecols="A:E", skiprows=12, nrows=3)
     df_project1 = clean_df(df_project1)
 
-    df = pd.read_excel('data.xlsx', sheet_name=0, header=13, nrows=250, usecols="A:O")
+    df = pd.read_excel(xls, sheet_name=0, header=13, nrows=250, usecols="A:O")
     df = clean_df(df)
     df = df[['門市編號', '門市名稱', 'PMQ_檢核', '專案檢核', 'HUB', '完工檢核']]
 
@@ -66,18 +74,19 @@ def personal(name):
     if not sheet_name:
         return f"找不到{name}的分頁", 404
 
-    df_top = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="A:G", nrows=4)
+    xls = load_excel_from_github(GITHUB_XLSX_URL)
+
+    df_top = pd.read_excel(xls, sheet_name=sheet_name, usecols="A:G", nrows=4)
     df_top = clean_df(df_top)
     for column in df_top.columns:
         df_top[column] = df_top[column].apply(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
 
-    df_project = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="H:L", nrows=3)
+    df_project = pd.read_excel(xls, sheet_name=sheet_name, usecols="H:L", nrows=3)
     df_project = clean_df(df_project)
     for column in df_project.columns:
         df_project[column] = df_project[column].apply(lambda x: int(x) if isinstance(x, (int, float)) and x == int(x) else x)
 
-    # 永遠執行這段
-    df_bottom = pd.read_excel('data.xlsx', sheet_name=sheet_name, usecols="A:J", skiprows=5)
+    df_bottom = pd.read_excel(xls, sheet_name=sheet_name, usecols="A:J", skiprows=5)
     df_bottom = clean_df(df_bottom)
 
     keyword = request.args.get('keyword', '').strip()
@@ -112,7 +121,9 @@ def report():
     tables = []
 
     if keyword or store_id or repair_item:
-        df = pd.read_excel('data.xlsx', sheet_name='IM')
+        xls = load_excel_from_github(GITHUB_XLSX_URL)
+
+        df = pd.read_excel(xls, sheet_name='IM')
         df = clean_df(df)
         df = df[['案件類別', '門店編號', '門店名稱', '報修時間', '報修類別', '報修項目', '報修說明', '設備號碼', '服務人員', '工作內容']]
 
