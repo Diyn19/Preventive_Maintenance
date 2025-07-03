@@ -11,10 +11,15 @@ GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/Diyn19/Preventive_Maintenan
 # 即時從 GitHub 載入 Excel 檔案
 def load_excel_from_github(url):
     response = requests.get(url)
-    if response.status_code == 200:
-        return pd.ExcelFile(BytesIO(response.content), engine='openpyxl')
+    if response.status_code == 200 and 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in response.headers.get('Content-Type', ''):
+        try:
+            return pd.ExcelFile(BytesIO(response.content), engine='openpyxl')
+        except Exception as e:
+            print(f"Excel parsing error: {e}")
+            raise
     else:
-        raise Exception("下載 Excel 失敗: " + url)
+        print(f"Download failed or not Excel: {response.status_code} - {response.headers.get('Content-Type')}")
+        raise Exception("下載 Excel 失敗或格式錯誤: " + url)
 
 # 清理資料
 def clean_df(df):
@@ -153,4 +158,3 @@ def report():
     )
 
 if __name__ == '__main__':
-    app.run(debug=True)
