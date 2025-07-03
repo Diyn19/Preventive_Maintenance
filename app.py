@@ -6,7 +6,7 @@ from flask import Flask, render_template, request
 app = Flask(__name__)
 
 # GitHub 上的 raw Excel 路徑（請自行替換成你的）
-GITHUB_XLSX_URL = 'https://github.com/Diyn19/Preventive_Maintenance/blob/master/data.xlsx'
+GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/Diyn19/Preventive_Maintenance/master/data.xlsx'
 
 # 即時從 GitHub 載入 Excel 檔案
 def load_excel_from_github(url):
