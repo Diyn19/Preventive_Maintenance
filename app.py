@@ -7,18 +7,13 @@ import os
 app = Flask(__name__)
 
 GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/Diyn19/data/master/data.xlsx'
-cached_xls = None  # 快取變數
 
 def load_excel_from_github(url):
-    global cached_xls
-    if cached_xls:
-        return cached_xls
     try:
         response = requests.get(url, timeout=5)
         content_type = response.headers.get('Content-Type', '')
         if response.status_code == 200 and ('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type or url.endswith('.xlsx')):
-            cached_xls = pd.ExcelFile(BytesIO(response.content), engine='openpyxl')
-            return cached_xls
+            return pd.ExcelFile(BytesIO(response.content), engine='openpyxl')
         else:
             print(f"❌ Excel 下載失敗：{response.status_code} - {content_type}")
     except Exception as e:
@@ -111,7 +106,6 @@ def report():
 
     if keyword or store_id or repair_item:
         xls = load_excel_from_github(GITHUB_XLSX_URL)
-
         df = clean_df(pd.read_excel(xls, sheet_name='IM'))
         df = df[['案件類別', '門店編號', '門店名稱', '報修時間', '報修類別', '報修項目', '報修說明', '設備號碼', '服務人員', '工作內容']]
 
