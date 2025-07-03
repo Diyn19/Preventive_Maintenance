@@ -156,5 +156,3 @@ def report():
         report_page=True,
         no_data_found=no_data_found
     )
-
-if __name__ == '__main__':
