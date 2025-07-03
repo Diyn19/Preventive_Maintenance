@@ -6,7 +6,7 @@ import os
 
 app = Flask(__name__)
 
-GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/Diyn19/Preventive_Maintenance/master/data.xlsx'
+GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/Diyn19/data/master/data.xlsx'
 cached_xls = None  # 快取變數
 
 def load_excel_from_github(url):
